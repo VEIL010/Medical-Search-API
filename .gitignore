@@ -4,6 +4,8 @@ __pycache__/
 .pytest_cache/
 .env
 .env.*
+!.env.example
+.local/
 # 파이프라인 산출물(평문 벡터·ID)은 저장소에 올리지 않는다
 data/
 *.npy
