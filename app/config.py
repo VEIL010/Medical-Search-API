@@ -18,6 +18,15 @@ class Settings:
     max_body_bytes: int = 64 * 1024 * 1024
     """요청 본문 상한. CKKS 암호문이 수 MB 이므로 넉넉히 잡는다."""
 
+    dataset_dir: Path | None = None
+    """일괄 등록 벡터 스냅샷 저장 위치. 직접 구성할 때는 data_dir/.datasets."""
+    enrollment_api_key: str | None = None
+    """DB 교체 권한의 키. 생략하면 api_key 를 사용하며, 둘 다 없으면 등록은 비활성화."""
+
+    @property
+    def enrollment_key(self) -> str | None:
+        return self.enrollment_api_key or self.api_key or None
+
     @classmethod
     def from_env(cls) -> "Settings":
         return cls(
@@ -25,4 +34,6 @@ class Settings:
             api_key=os.environ.get("VEIL_API_KEY") or None,
             max_top_k=int(os.environ.get("VEIL_MAX_TOP_K", "50")),
             max_body_bytes=int(os.environ.get("VEIL_MAX_BODY_BYTES", str(64 * 1024 * 1024))),
+            dataset_dir=Path(os.environ.get("VEIL_DATASET_DIR", ".local/datasets")),
+            enrollment_api_key=os.environ.get("VEIL_ENROLLMENT_API_KEY") or None,
         )

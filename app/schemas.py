@@ -3,12 +3,14 @@ from __future__ import annotations
 
 from typing import Annotated, Literal, Union
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 # 등록 벡터 차원과 정확히 같은지는 적재된 DB 를 아는 라우트에서 확인한다. 여기서는 상한만 둔다.
 MAX_VECTOR_LENGTH = 4096
 
-FiniteFloat = Annotated[float, Field(allow_inf_nan=False)]
+FiniteFloat = Annotated[float, Field(strict=True, allow_inf_nan=False)]
+DatasetId = Annotated[str, Field(strict=True, pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")]
+TransformerHash = Annotated[str, Field(strict=True, pattern=r"^[0-9a-f]{64}$")]
 
 
 class PlaintextQuery(BaseModel):
@@ -17,6 +19,14 @@ class PlaintextQuery(BaseModel):
     scheme: Literal["plaintext"]
     vector: list[FiniteFloat] = Field(min_length=1, max_length=MAX_VECTOR_LENGTH)
     top_k: int = Field(default=5, ge=1)
+    dataset_id: DatasetId | None = None
+    transformer_hash: TransformerHash | None = None
+
+    @model_validator(mode="after")
+    def require_ref_pair(self):
+        if (self.dataset_id is None) != (self.transformer_hash is None):
+            raise ValueError("dataset_id 와 transformer_hash 는 함께 지정해야 합니다.")
+        return self
 
 
 class EncryptedQuery(BaseModel):
@@ -43,6 +53,7 @@ class PlaintextResult(BaseModel):
     top_k: int
     results: list[HitOut]
     elapsed_ms: float
+    dataset_id: str | None = None
 
 
 class EncryptedResult(BaseModel):
